@@ -21,7 +21,7 @@ pipeline {
                     npm --version
 
                     # Install dependencies and build the project
-                    npm ci
+                    npm install
                     npm run build
 
                     # Verify the build output
