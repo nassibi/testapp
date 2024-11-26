@@ -11,9 +11,9 @@ pipeline {
             }
             steps {
                 sh '''
-                    # Create a local .npm directory inside the user's home directory
-                    mkdir -p /home/node/.npm
-                    chown -R node:node /home/node/.npm
+                    # Temporarily run as root to create the .npm directory
+                    sudo mkdir -p /home/node/.npm
+                    sudo chown -R node:node /home/node/.npm
 
                     # Check versions and directories
                     ls -la
