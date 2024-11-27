@@ -17,9 +17,9 @@ pipeline {
                     node --version
                     npm --version
 
-                    # Fix npm cache permissions (this should solve the EACCES error)
+                    # Fix npm cache permissions (without sudo)
                     echo "Fixing npm cache permissions"
-                    sudo chown -R $(whoami):$(whoami) /.npm
+                    chown -R node:node /.npm
 
                     # Clean npm cache to avoid potential permission issues
                     echo "Cleaning npm cache"
