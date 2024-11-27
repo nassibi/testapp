@@ -1,55 +1,97 @@
 pipeline {
     agent any
 
+    environment {
+        NPM_CACHE_DIR = '/.npm'
+    }
+
     stages {
-        stage('Build') {
-            agent {
-                docker {
-                    image 'node:23'
-                    reuseNode true
+        stage('Checkout') {
+            steps {
+                script {
+                    // Checkout the code from the repository
+                    checkout scm
                 }
             }
+        }
+
+        stage('Docker Run') {
             steps {
-                sh '''
-                    # Check versions and directories
-                    echo "Listing files before build"
-                    ls -la
-                    node --version
-                    npm --version
-
-                    # Get the npm cache directory path
-                    NPM_CACHE_DIR=$(npm config get cache)
-                    echo "NPM Cache Directory: $NPM_CACHE_DIR"
-
-                    # If the cache directory is in a custom location, fix permissions
-                    if [ -d "$NPM_CACHE_DIR" ]; then
-                        echo "Fixing npm cache permissions"
-                        chown -R node:node $NPM_CACHE_DIR
-                    else
-                        echo "NPM cache directory not found at $NPM_CACHE_DIR"
-                    fi
-
-                    # Clean npm cache to avoid potential permission issues
-                    echo "Cleaning npm cache"
-                    npm cache clean --force
-
-                    # Remove node_modules directory if it exists (to ensure a clean install)
-                    echo "Removing node_modules"
-                    rm -rf node_modules
-
-                    # Install dependencies using npm ci (clean install)
-                    echo "Installing dependencies"
-                    npm ci
-
-                    # Run the build command
-                    echo "Running build"
-                    npm run build
-
-                    # Verify the build output
-                    echo "Listing files after build"
-                    ls -la
-                '''
+                script {
+                    // Pulling and running the Docker container
+                    def dockerImage = 'node:23'
+                    def dockerRun = docker.image(dockerImage)
+                    
+                    dockerRun.withRun("-v ${pwd()}:/workspace -w /workspace") {
+                        // Commands inside the Docker container
+                        sh 'ls -la' // List files to check
+                        sh 'node --version' // Check Node version
+                        sh 'npm --version' // Check npm version
+                        sh 'npm config get cache' // Check npm cache
+                    }
+                }
             }
+        }
+
+        stage('Clean npm cache') {
+            steps {
+                script {
+                    echo 'Cleaning npm cache'
+                    sh 'npm cache clean --force'
+                }
+            }
+        }
+
+        stage('Remove node_modules') {
+            steps {
+                script {
+                    echo 'Removing node_modules directory'
+                    sh 'rm -rf node_modules'
+                }
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                script {
+                    echo 'Installing dependencies using npm ci'
+                    sh 'npm ci'
+                }
+            }
+        }
+
+        stage('Build and Test') {
+            steps {
+                script {
+                    // Assuming the project has build and test scripts
+                    echo 'Running build and tests'
+                    sh 'npm run build'
+                    sh 'npm test'
+                }
+            }
+        }
+
+        stage('Docker Cleanup') {
+            steps {
+                script {
+                    echo 'Cleaning up Docker container'
+                    sh 'docker system prune -f'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Clean up the Docker container, in case it was left running
+            echo 'Cleaning up Docker container if necessary'
+            sh 'docker ps -a -q | xargs -n 1 docker rm -f'
+        }
+        success {
+            echo 'Build completed successfully!'
+        }
+        failure {
+            echo 'Build failed!'
         }
     }
 }
