@@ -17,9 +17,13 @@ pipeline {
                     node --version
                     npm --version
 
+                    # Get the npm cache directory path
+                    NPM_CACHE_DIR=$(npm config get cache)
+                    echo "NPM Cache Directory: $NPM_CACHE_DIR"
+
                     # Fix npm cache permissions (without sudo)
                     echo "Fixing npm cache permissions"
-                    chown -R node:node /.npm
+                    chown -R node:node $NPM_CACHE_DIR
 
                     # Clean npm cache to avoid potential permission issues
                     echo "Cleaning npm cache"
